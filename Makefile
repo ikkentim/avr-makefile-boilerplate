@@ -61,9 +61,9 @@ F_CPU		= 16000000
 SRC_FILES_BLINK 	= blink.c
 OBJECTS_BLINK       = $(call TO_OBJECTS, $(BIN)attiny85/, $(SRC_FILES_BLINK))
 
+.PHONY: blink blink-isp blink-size
 blink: INCLUDES	= -I~/Library/Arduino15/packages/attiny/hardware/avr/1.0.2/variants/tiny8
-blink: OBJECTS 	= $(OBJECTS_BLINK)
-blink: $(OBJECTS_BLINK) $(BIN)blink.hex
+blink: $(BIN)blink.hex
 
 blink-isp: avr-upload-blink
 blink-size: avr-size-blink
@@ -72,12 +72,11 @@ $(BIN)blink.elf: $(OBJECTS_BLINK)
 	@mkdir -p $(shell dirname $@)
 	$(CC) $< $(LDFLAGS) -o $@
 
-.PHONY: blink blink-isp blink-size clean avr-upload-% avr-size-%
-.PRECIOUS: %.elf
-
 ###########################################
 # Build rules
 ###########################################
+
+.PRECIOUS: %.elf
 
 $(BIN)atmega328p/%.o: %.c
 	@mkdir -p $(shell dirname $@)
@@ -102,6 +101,8 @@ $(BIN)%.dump: $(BIN)%.hex
 # AVR tool targets
 ###########################################
 
+.PHONY: avr-upload-% avr-size-%
+
 avr-upload-%:
 	$(AVRDUDE) $(AVRDUDE_ARGS) $(ISP_FUSES) -U flash:w:$(BIN)$*.hex:i
 
@@ -111,6 +112,8 @@ avr-size-%:
 ###########################################
 # Housekeeping
 ###########################################
+
+.PHONY: clean
 
 clean:
 	rm -rf $(BIN)
