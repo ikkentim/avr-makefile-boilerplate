@@ -28,12 +28,12 @@ AVRDUDE 	= $(AVR_BIN)avrdude
 # Default ISP options
 ###########################################
 
-ISP_SPEED 	= 115200
+ISP_SPEED 	= 19200
 ISP_PORT 	= $(word 1, $(shell ls /dev/tty.usbmodem*))
 ISP_MCU 	= $(subst atmega,m,$(subst attiny,t,$(MCU)))
-ISP_TOOL 	= arduinog
+ISP_TOOL 	= stk500v1
 
-AVRDUDE_ARGS = $(AVRDUDE_ARGS) -P $(ISP_PORT) -p $(ISP_MCU) -c $(ISP_TOOL) -b $(ISP_SPEED)
+AVRDUDE_ARGS += -P $(ISP_PORT) -p $(ISP_MCU) -c $(ISP_TOOL) -b $(ISP_SPEED)
 
 ###########################################
 # Functions
@@ -55,30 +55,25 @@ INCLUDES	= -I "$(AVR_DIR)avr/$(MCU)/include"
 CFLAGS	 	= -std=gnu99 -c -g -Os -Wall -Wextra -MMD -mmcu=$(MCU) -DF_CPU=$(F_CPU) -fno-exceptions -ffunction-sections -fdata-sections -fdiagnostics-color=auto $(INCLUDES)
 LDFLAGS 	= -mmcu=$(MCU) -fdiagnostics-color=auto -Wl,-static -Wl,--gc- -finline-functions
 
-MCU			= atmega328p
+MCU			= attiny85
 F_CPU		= 16000000
 
 SRC_FILES_BLINK 	= blink.c
-
 OBJECTS_BLINK       = $(call TO_OBJECTS, $(BIN)attiny85/, $(SRC_FILES_BLINK))
 
-blink: MCU			= attiny85
-blink: F_CPU		= 1000000
 blink: INCLUDES	= -I~/Library/Arduino15/packages/attiny/hardware/avr/1.0.2/variants/tiny8
 blink: OBJECTS 	= $(OBJECTS_BLINK)
-
 blink: $(OBJECTS_BLINK) $(BIN)blink.hex
 
-blink-isp: ISP_SPEED 	= 19200
-blink-isp: ISP_TOOL 	= arduino
-blink-isp: MCU			= attiny85
 blink-isp: avr-upload-blink
-
-blink-size: MCU		= attiny85
 blink-size: avr-size-blink
 
-.PHONY: blink blink-isp blink-size
-.PRECIOUS: $(BIN)%.elf
+$(BIN)blink.elf: $(OBJECTS_BLINK)
+	@mkdir -p $(shell dirname $@)
+	$(CC) $< $(LDFLAGS) -o $@
+
+.PHONY: blink blink-isp blink-size clean avr-upload-% avr-size-%
+.PRECIOUS: %.elf
 
 ###########################################
 # Build rules
@@ -91,10 +86,6 @@ $(BIN)atmega328p/%.o: %.c
 $(BIN)attiny85/%.o: %.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $< $(CFLAGS) -c -o $@
-
-$(BIN)%.elf:
-	@mkdir -p $(shell dirname $@)
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 
 $(BIN)%.hex: $(BIN)%.elf
 	@mkdir -p $(shell dirname $@)
@@ -124,7 +115,8 @@ avr-size-%:
 clean:
 	rm -rf $(BIN)
 
+
 # include deps lists build with gcc -MMD flag
 ifneq "$(wildcard $(BIN) )" ""
--include $(shell find $(BIN) -name "*.d")
+-include $(shell find $(BIN) -name "**/*.d")
 endif
